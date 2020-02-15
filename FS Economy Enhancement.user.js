@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        FS Economy Enhancement
-// @author      Niels Huylebroeck
+// @author      Niels Huylebroeck + vachiin
 // @namespace   nightwalkers
 // @description Improvements for FS Economy usability
 // @include     http://server.fseconomy.net/*
@@ -13,7 +13,7 @@
 // @update      https://greasyfork.org/scripts/7054-fs-economy-enhancement/code/FS%20Economy%20Enhancement.user.js
 // ==/UserScript==
 
-const LOG_ENABLED = true;
+const LOG_ENABLED = false;
 const MAN_WEIGHT = 77;
 const rounding = 2;
 
@@ -148,7 +148,7 @@ function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
         prevAiport = aiport;
     }
 
-    if (LOG_ENABLED) console.log(groups);
+    // if (LOG_ENABLED) console.log(groups);
 }
 
 function main() {
