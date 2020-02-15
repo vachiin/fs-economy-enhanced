@@ -108,12 +108,14 @@ function sortByColumn(nrCol) {
     $('[data-column="' + nrCol + '"]').first().trigger('sort');
 }
 
-function findAssignmentsTable() {
+function findNotEmptyAssignmentsTable() {
     const tables = document.getElementsByTagName('table');
+    const tbls = [];
     for (let table of tables) {
         if (!check_table_valid(table)) continue;
-        return table;
+        tbls.push(table);
     }
+    return tbls;
 }
 
 function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
@@ -128,9 +130,9 @@ function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
 
         let data = groups[aiport];
         if (data === undefined) {
-            data = { sum: price, count: 1};
+            data = {sum: price, count: 1};
         } else {
-            data = { sum: data.sum + price, count: data.count + 1};
+            data = {sum: data.sum + price, count: data.count + 1};
         }
         data.perRange = (Math.round((data.sum / range) * Math.pow(10, rounding)) / Math.pow(10, rounding)).toFixed(2);
         groups[aiport] = data;
@@ -152,20 +154,20 @@ function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
 }
 
 function main() {
-    let table = findAssignmentsTable();
+    for (let table of findNotEmptyAssignmentsTable()) {
+        let col_pay = getColNumber(table, 'Pay');
+        let col_nm = getColNumber(table, 'NM');
+        let col_dest = getColNumber(table, 'Dest');
+        let col_cargo = getColNumber(table, 'Cargo');
 
-    let col_pay = getColNumber(table, 'Pay');
-    let col_nm = getColNumber(table, 'NM');
-    let col_dest = getColNumber(table, 'Dest');
-    let col_cargo = getColNumber(table, 'Cargo');
+        if (col_pay === undefined || col_nm === undefined || col_cargo === undefined || col_dest === undefined) {
+            throw 'fatal error'
+        }
 
-    if (col_pay === undefined || col_nm === undefined || col_cargo === undefined || col_dest === undefined) {
-        throw 'fatal error'
+        calculatePerMan(table, col_cargo, col_nm, col_pay);
+        sortByColumn(col_nm);
+        calculatePerDestinationSum(table, col_dest, col_pay, col_nm);
     }
-
-    calculatePerMan(table, col_cargo, col_nm, col_pay);
-    sortByColumn(col_nm);
-    calculatePerDestinationSum(table, col_dest, col_pay, col_nm);
 }
 
 $(document).ready(
