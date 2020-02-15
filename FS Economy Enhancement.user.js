@@ -15,6 +15,7 @@
 
 const LOG_ENABLED = true;
 const MAN_WEIGHT = 77;
+const rounding = 2;
 
 function check_table_valid(table) {
     if (table.rows.length === 0) return false;
@@ -37,15 +38,19 @@ function getColNumber(table, colName) {
 
 function addColumnHeader(table, headerName) {
     const col_head = document.createElement('th');
+    col_head.setAttribute('class', 'tablesorter-header sorter-false');
     col_head.textContent = headerName;
     table.rows[0].appendChild(col_head);
 }
 
-function addCell(row, content) {
+function addCell(row, content, spanRows) {
     // console.log('addCell', content);
     let new_cell = document.createElement('td');
-    new_cell.textContent = '$' + content.toString();
+    new_cell.textContent = content;
     new_cell.setAttribute('class', 'numeric');
+    if (spanRows) {
+        new_cell.setAttribute('rowspan', spanRows);
+    }
     row.appendChild(new_cell);
 }
 
@@ -63,10 +68,16 @@ function extractCargo(row, col_cargo) {
     return row.cells[col_cargo].textContent.search(/kg/) !== -1;
 }
 
-function calculate(table, col_cargo, col_nm, col_pay) {
+function getPrice(text) {
+    return parseFloat(text.replace('$', '').replace(',', ''));
+}
+
+function calculatePerMan(table, col_cargo, col_nm, col_pay) {
+    addColumnHeader(table, 'Price per nm/qty');
+
     for (let x = 1; x < table.rows.length; x++) {
         let row = table.rows[x];
-        let qtyS = 1, range, price, cargo = false, calculation = 0, rounding = 2;
+        let qtyS = 1, range, price, cargo = false, calculation = 0;
         try {
             qtyS = extractQuantity(row, col_cargo);
             cargo = extractCargo(row, col_cargo, x);
@@ -80,42 +91,84 @@ function calculate(table, col_cargo, col_nm, col_pay) {
             row.cells[col_cargo].textContent += ' (' + qty + ' passengers)';
         }
         range = parseFloat(row.cells[col_nm].textContent);
-        price = parseFloat(row.cells[col_pay].textContent.replace('$', '').replace(',', ''));
+        price = getPrice(row.cells[col_pay].textContent);
 
-        if (LOG_ENABLED) console.info('cargo ', cargo, 'qtyS', qtyS, 'qty', qty, 'range', range, 'price', price);
+        // if (LOG_ENABLED) console.info('cargo ', cargo, 'qtyS', qtyS, 'qty', qty, 'range', range, 'price', price);
 
         if (qty && range && price) {
-            while (calculation === 0) {
-                calculation = Math.round((price / qty / range) * Math.pow(10, rounding)) / Math.pow(10, rounding);
-                rounding++;
-            }
+            calculation = (Math.round((price / qty / range) * Math.pow(10, rounding)) / Math.pow(10, rounding)).toFixed(2);
         } else {
             calculation = NaN;
         }
-        addCell(row, calculation);
+        addCell(row, '$' + calculation.toString());
     }
 }
 
-function main() {
+function sortByColumn(nrCol) {
+    $('[data-column="' + nrCol + '"]').first().trigger('sort');
+}
+
+function findAssignmentsTable() {
     const tables = document.getElementsByTagName('table');
     for (let table of tables) {
         if (!check_table_valid(table)) continue;
-
-        addColumnHeader(table, 'Price per nm/qty');
-
-        let col_pay = getColNumber(table, 'Pay');
-        let col_nm = getColNumber(table, 'NM');
-        let col_cargo = getColNumber(table, 'Cargo');
-
-        if (col_pay === undefined || col_nm === undefined || col_cargo === undefined) {
-            continue;
-        }
-        calculate(table, col_cargo, col_nm, col_pay);
-
-        if (typeof jQuery !== 'undefined') {
-            jQuery(table).trigger('updateAll');
-        }
+        return table;
     }
 }
 
-main();
+function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
+    let groups = {};
+
+    addColumnHeader(table, 'Sum price per destination');
+    for (let x = 1; x < table.rows.length; x++) {
+        let row = table.rows[x];
+        let aiport = row.cells[col_dest].textContent.trim();
+        let price = getPrice(row.cells[col_pay].textContent.trim());
+        let range = parseFloat(row.cells[col_nm].textContent.trim());
+
+        let data = groups[aiport];
+        if (data === undefined) {
+            data = { sum: price, count: 1};
+        } else {
+            data = { sum: data.sum + price, count: data.count + 1};
+        }
+        data.perRange = (Math.round((data.sum / range) * Math.pow(10, rounding)) / Math.pow(10, rounding)).toFixed(2);
+        groups[aiport] = data;
+    }
+
+    let prevAiport = '';
+    for (let x = 1; x < table.rows.length; x++) {
+        let row = table.rows[x];
+        let aiport = row.cells[col_dest].textContent.trim();
+        if (prevAiport !== aiport) {
+            let data = groups[aiport];
+            let message = '$' + data.sum + ' from ' + data.count + ' aiports (per NM = ' + data.perRange + ')';
+            addCell(row, message, data.count);
+        }
+        prevAiport = aiport;
+    }
+
+    if (LOG_ENABLED) console.log(groups);
+}
+
+function main() {
+    let table = findAssignmentsTable();
+
+    let col_pay = getColNumber(table, 'Pay');
+    let col_nm = getColNumber(table, 'NM');
+    let col_dest = getColNumber(table, 'Dest');
+    let col_cargo = getColNumber(table, 'Cargo');
+
+    if (col_pay === undefined || col_nm === undefined || col_cargo === undefined || col_dest === undefined) {
+        throw 'fatal error'
+    }
+
+    calculatePerMan(table, col_cargo, col_nm, col_pay);
+    sortByColumn(col_nm);
+    calculatePerDestinationSum(table, col_dest, col_pay, col_nm);
+}
+
+$(document).ready(
+    main()
+);
+
