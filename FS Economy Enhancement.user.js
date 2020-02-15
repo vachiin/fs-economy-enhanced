@@ -142,7 +142,7 @@ function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
         let aiport = row.cells[col_dest].textContent.trim();
         if (prevAiport !== aiport) {
             let data = groups[aiport];
-            let message = '$' + data.sum + ' from ' + data.count + ' aiports (per NM = ' + data.perRange + ')';
+            let message = '$' + data.sum + ' from ' + data.count + ' assignments (per NM = $' + data.perRange + ')';
             addCell(row, message, data.count);
         }
         prevAiport = aiport;
