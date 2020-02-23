@@ -43,13 +43,16 @@ function addColumnHeader(table, headerName) {
     table.rows[0].appendChild(col_head);
 }
 
-function addCell(row, content, spanRows) {
+function addCell(row, content, spanRows, bgColor) {
     // console.log('addCell', content);
     let new_cell = document.createElement('td');
     new_cell.textContent = content;
     new_cell.setAttribute('class', 'numeric');
     if (spanRows) {
         new_cell.setAttribute('rowspan', spanRows);
+        if (bgColor) {
+            new_cell.setAttribute("style", "background-color: " + bgColor)
+        }
     }
     row.appendChild(new_cell);
 }
@@ -122,6 +125,7 @@ function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
     let groups = {};
 
     addColumnHeader(table, 'Sum price per destination');
+    let maxPerRange = 0;
     for (let x = 1; x < table.rows.length; x++) {
         let row = table.rows[x];
         let aiport = row.cells[col_dest].textContent.trim();
@@ -136,6 +140,10 @@ function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
         }
         data.perRange = (Math.round((data.sum / range) * Math.pow(10, rounding)) / Math.pow(10, rounding)).toFixed(2);
         groups[aiport] = data;
+
+        if (Number(data.perRange) > Number(maxPerRange)) {
+            maxPerRange = data.perRange;
+        }
     }
 
     let prevAiport = '';
@@ -145,7 +153,8 @@ function calculatePerDestinationSum(table, col_dest, col_pay, col_nm) {
         if (prevAiport !== aiport) {
             let data = groups[aiport];
             let message = '$' + data.sum + ' from ' + data.count + ' assignments (per NM = $' + data.perRange + ')';
-            addCell(row, message, data.count);
+            let bgColor = (maxPerRange === data.perRange) ? '#efffef' : '#dfdfdf';
+            addCell(row, message, data.count, bgColor);
         }
         prevAiport = aiport;
     }
@@ -166,7 +175,13 @@ function main() {
 
         calculatePerMan(table, col_cargo, col_nm, col_pay);
         sortByColumn(col_nm);
-        calculatePerDestinationSum(table, col_dest, col_pay, col_nm);
+
+        const waitjQuery = setInterval(function () {
+            if ($("th.tablesorter-headerAsc:contains('NM')").length === 1) {
+                clearInterval(waitjQuery);
+                calculatePerDestinationSum(table, col_dest, col_pay, col_nm);
+            }
+        }, 1000);
     }
 }
 
