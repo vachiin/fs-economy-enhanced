@@ -36,9 +36,9 @@ function getColNumber(table, colName) {
     return undefined;
 }
 
-function addColumnHeader(table, headerName) {
+function addColumnHeader(table, headerName, sort) {
     const col_head = document.createElement('th');
-    col_head.setAttribute('class', 'tablesorter-header sorter-false');
+    col_head.setAttribute('class', sort ? 'tablesorter-header tablesorter-headerUnSorted' : 'tablesorter-header sorter-false');
     col_head.textContent = headerName;
     table.rows[0].appendChild(col_head);
 }
@@ -76,7 +76,7 @@ function getPrice(text) {
 }
 
 function calculatePerMan(table, col_cargo, col_nm, col_pay) {
-    addColumnHeader(table, 'Price per nm/qty');
+    addColumnHeader(table, 'Price per nm/qty', true);
 
     for (let x = 1; x < table.rows.length; x++) {
         let row = table.rows[x];
@@ -180,7 +180,7 @@ function main() {
             if ($("th.tablesorter-headerAsc:contains('NM')").length === 1) {
                 clearInterval(waitjQuery);
                 calculatePerDestinationSum(table, col_dest, col_pay, col_nm);
-                $(".assignmentTable").tablesorter();
+                $(".assignmentTable").trigger('updateAll');
             }
         }, 1000);
     }
