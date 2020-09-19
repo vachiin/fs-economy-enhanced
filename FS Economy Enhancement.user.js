@@ -19,7 +19,7 @@ const rounding = 2;
 
 function check_table_valid(table) {
     if (table.rows.length === 0) return false;
-    if (table.classList.contains('assigmentTable') || table.classList.contains('assignmentTable') || table.classList.contains('holdTable')) {
+    if (table.classList.contains('assigmentTable') || table.classList.contains('assignmentTable')) {
         return true;
     }
 }
@@ -108,7 +108,7 @@ function calculatePerMan(table, col_cargo, col_nm, col_pay) {
 }
 
 function sortByColumn(nrCol) {
-    $('[data-column="' + nrCol + '"]').first().trigger('sort');
+    $('table[class^="ass"] [data-column="' + nrCol + '"]').first().trigger('sort');
 }
 
 function findNotEmptyAssignmentsTable() {
@@ -180,6 +180,7 @@ function main() {
             if ($("th.tablesorter-headerAsc:contains('NM')").length === 1) {
                 clearInterval(waitjQuery);
                 calculatePerDestinationSum(table, col_dest, col_pay, col_nm);
+                $(".assignmentTable").tablesorter();
             }
         }, 1000);
     }
